@@ -1,0 +1,13 @@
+.gradle/
+build/
+app/build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+out/
+
+# Signing key is NOT committed — it lives in the KEYSTORE_B64 Actions secret
+# and is decoded during CI. Keep it out of this public repo.
+keystore/
+*.jks

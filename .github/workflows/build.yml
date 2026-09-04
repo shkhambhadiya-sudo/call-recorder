@@ -1,0 +1,67 @@
+name: Build & Release APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Restore the stable signing key from the encrypted KEYSTORE_B64 secret.
+      # The key is NOT stored in the (public) repo; every build decodes it here
+      # so all releases share one signature and updates install over each other.
+      - name: Restore signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          mkdir -p keystore
+          echo "$KEYSTORE_B64" | base64 --decode > keystore/release.jks
+          echo "Restored keystore ($(wc -c < keystore/release.jks) bytes)."
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build release APK
+        env:
+          APP_VERSION_CODE: ${{ github.run_number }}
+          APP_VERSION_NAME: 1.0.${{ github.run_number }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          KEYSTORE_PASSWORD: callrecorder
+          KEY_ALIAS: callrecorder
+          KEY_PASSWORD: callrecorder
+        run: gradle --no-daemon :app:assembleRelease
+
+      - name: Rename APK
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/release/app-release.apk \
+             out/call-recorder-v${{ github.run_number }}.apk
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ github.run_number }}" \
+            out/call-recorder-v${{ github.run_number }}.apk \
+            --title "v${{ github.run_number }}" \
+            --notes "Automated build ${{ github.run_number }} from commit ${{ github.sha }}."

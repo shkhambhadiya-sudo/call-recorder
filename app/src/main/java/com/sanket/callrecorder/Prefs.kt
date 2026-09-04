@@ -11,9 +11,9 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("auto_record", true)
         set(v) = sp.edit().putBoolean("auto_record", v).apply()
 
-    /** AAC bitrate in bits/sec. Lower = smaller files. Default 32 kbps (voice). */
+    /** AAC bitrate in bits/sec. Lower = smaller files. Default 64 kbps (clear voice). */
     var bitrate: Int
-        get() = sp.getInt("bitrate", 32000)
+        get() = sp.getInt("bitrate", 64000)
         set(v) = sp.edit().putInt("bitrate", v).apply()
 
     /** Check GitHub for updates automatically on launch. */

@@ -61,11 +61,15 @@ class RecordingService : Service() {
             return dir
         }
 
+        // Order matters. MIC first: on a speaker call the phone mic physically
+        // picks up BOTH your voice and the other party from the speaker. We
+        // deliberately avoid leading with VOICE_COMMUNICATION because its echo
+        // cancellation tries to remove the speaker output (the far end).
+        // VOICE_CALL is dropped entirely — it's blocked for non-system apps.
         private val AUDIO_SOURCES = intArrayOf(
-            MediaRecorder.AudioSource.VOICE_CALL,
+            MediaRecorder.AudioSource.MIC,
             MediaRecorder.AudioSource.VOICE_RECOGNITION,
-            MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-            MediaRecorder.AudioSource.MIC
+            MediaRecorder.AudioSource.VOICE_COMMUNICATION
         )
     }
 
@@ -263,6 +267,7 @@ class RecordingService : Service() {
         isRecording = false
         try {
             r.stop()
+            outputFile?.let { Log.i(TAG, "Saved ${it.name}: ${it.length()} bytes") }
         } catch (e: Exception) {
             Log.w(TAG, "stop() failed (call too short?): ${e.message}")
             outputFile?.delete()
